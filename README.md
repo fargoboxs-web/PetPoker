@@ -1,3 +1,37 @@
+## PetPoker API Setup
+
+项目里的 API 放置位置：
+
+- 前端请求入口：`src/app/page.tsx`（调用 `/api/generate`）
+- 服务端 API 代理：`src/app/api/generate/route.ts`
+
+当前后端默认按 Gemini 兼容方式调用卖家接口（`https://api.mmw.ink`），并自动尝试多种认证头（`x-goog-api-key` / `Authorization: Bearer`）。
+
+### 1) 配置环境变量
+
+```bash
+cp .env.example .env.local
+```
+
+按你的 API 信息填写 `.env.local`。
+
+关键变量：
+
+- `NANOBANANA_API_KEY`
+- `NANOBANANA_BASE_URL`
+- `NANOBANANA_MODEL`
+- `NANOBANANA_API_MODE`（`gemini` / `openai-images` / `auto`）
+
+### 2) 本地运行
+
+```bash
+npm run dev
+```
+
+如果卖家后续改了文档，只要改 `.env.local` 里的 endpoint / model / mode 即可，通常不需要再改业务代码。
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
