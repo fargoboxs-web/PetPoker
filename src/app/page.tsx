@@ -17,6 +17,10 @@ export default function Home() {
   const [state, setState] = useState<AppState>({ step: 'upload' });
   const [error, setError] = useState<string | null>(null);
 
+  type GenerateResponse =
+    | { success: true; cards: string[] }
+    | { success: false; error?: string };
+
   const handleImageSelect = async (imageBase64: string) => {
     setState({ step: 'generating', petImage: imageBase64 });
     setError(null);
@@ -28,10 +32,38 @@ export default function Home() {
         body: JSON.stringify({ petImage: imageBase64 }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: GenerateResponse | null = null;
+      let nonJsonText: string | null = null;
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || '生成失败，请重试');
+      try {
+        if (contentType.includes('application/json')) {
+          data = (await response.json()) as GenerateResponse;
+        } else {
+          nonJsonText = await response.text();
+        }
+      } catch {
+        // If the platform returns plain text/HTML (e.g. "Request Entity Too Large"),
+        // response.json() will throw. Fall back to text to surface a meaningful error.
+        try {
+          nonJsonText = await response.text();
+        } catch {
+          nonJsonText = null;
+        }
+      }
+
+      if (!response.ok) {
+        const jsonError =
+          data && 'error' in data && typeof data.error === 'string' ? data.error : null;
+        const msg =
+          jsonError ||
+          (nonJsonText && nonJsonText.trim()) ||
+          `生成失败（HTTP ${response.status}）`;
+        throw new Error(msg);
+      }
+
+      if (!data?.success) {
+        throw new Error((data && data.error) || '生成失败，请重试');
       }
 
       setState({ step: 'select', cards: data.cards });

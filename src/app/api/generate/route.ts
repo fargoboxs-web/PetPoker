@@ -322,24 +322,6 @@ function parseImageFromResponse(rawData: unknown): string | null {
   return null;
 }
 
-// 从响应中解析纯文本内容
-function parseTextFromResponse(rawData: unknown): string | null {
-  const data = rawData as ApiResponsePayload;
-  const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
-  const texts: string[] = [];
-
-  for (const candidate of candidates) {
-    const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
-    for (const part of parts) {
-      if (typeof part?.text === 'string' && part.text.trim().length > 0) {
-        texts.push(part.text.trim());
-      }
-    }
-  }
-
-  return texts.length > 0 ? texts.join('\n') : null;
-}
-
 async function fetchWithAuthFallback(
   url: string,
   body: BodyInit | string,
