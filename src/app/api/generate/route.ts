@@ -1,24 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const NANO_API_KEY = process.env.NANOBANANA_API_KEY?.trim();
-const NANO_BASE_URL = (process.env.NANOBANANA_BASE_URL || 'https://api.mmw.ink').replace(/\/+$/, '');
-const NANO_MODEL = process.env.NANOBANANA_MODEL || '[A]gemini-3-pro-image-preview';
-const NANO_API_MODE = (process.env.NANOBANANA_API_MODE || 'gemini').toLowerCase();
+function readEnv(name: string, fallback = ''): string {
+  const raw = process.env[name];
+  const value = raw == null || raw === '' ? fallback : raw;
+  return value.replace(/\r?\n/g, '').trim();
+}
+
+const NANO_API_KEY = readEnv('NANOBANANA_API_KEY');
+const NANO_BASE_URL = readEnv('NANOBANANA_BASE_URL', 'https://api.mmw.ink').replace(/\/+$/, '');
+const NANO_MODEL = readEnv('NANOBANANA_MODEL', '[A]gemini-3-pro-image-preview');
+const NANO_API_MODE = readEnv('NANOBANANA_API_MODE', 'gemini').toLowerCase();
 const NANO_GEMINI_ENDPOINT_TEMPLATE =
-  process.env.NANOBANANA_GEMINI_ENDPOINT_TEMPLATE || '/v1beta/models/{model}:generateContent';
-const NANO_IMAGE_SIZE = process.env.NANOBANANA_IMAGE_SIZE || '2K';
-const NANO_TIMEOUT_MS = Number(process.env.NANOBANANA_TIMEOUT_MS || '300000');
-const NANO_IMAGE_ENDPOINT = process.env.NANOBANANA_IMAGE_ENDPOINT || '/v1/images/edits';
-const NANO_AUTH_HEADER = process.env.NANOBANANA_AUTH_HEADER || 'Authorization';
-const NANO_AUTH_SCHEME = process.env.NANOBANANA_AUTH_SCHEME ?? 'Bearer';
-const NANO_MODEL_FIELD = process.env.NANOBANANA_MODEL_FIELD || 'model';
-const NANO_PROMPT_FIELD = process.env.NANOBANANA_PROMPT_FIELD || 'prompt';
-const NANO_IMAGE_FIELD = process.env.NANOBANANA_IMAGE_FIELD || 'image';
-const NANO_TEMPLATE_IMAGE_FIELD = process.env.NANOBANANA_TEMPLATE_IMAGE_FIELD || NANO_IMAGE_FIELD;
-const NANO_INCLUDE_TEMPLATE = process.env.NANOBANANA_INCLUDE_TEMPLATE !== '0';
-const NANO_GROUP = process.env.NANOBANANA_GROUP;
-const NANO_EXTRA_HEADERS = process.env.NANOBANANA_EXTRA_HEADERS;
-const NANO_DEBUG = process.env.NANOBANANA_DEBUG === '1';
+  readEnv('NANOBANANA_GEMINI_ENDPOINT_TEMPLATE', '/v1beta/models/{model}:generateContent');
+const NANO_IMAGE_SIZE = readEnv('NANOBANANA_IMAGE_SIZE', '2K');
+const NANO_TIMEOUT_MS = Number(readEnv('NANOBANANA_TIMEOUT_MS', '300000'));
+const NANO_IMAGE_ENDPOINT = readEnv('NANOBANANA_IMAGE_ENDPOINT', '/v1/images/edits');
+const NANO_AUTH_HEADER = readEnv('NANOBANANA_AUTH_HEADER', 'Authorization');
+const NANO_AUTH_SCHEME = process.env.NANOBANANA_AUTH_SCHEME == null
+  ? 'Bearer'
+  : readEnv('NANOBANANA_AUTH_SCHEME');
+const NANO_MODEL_FIELD = readEnv('NANOBANANA_MODEL_FIELD', 'model');
+const NANO_PROMPT_FIELD = readEnv('NANOBANANA_PROMPT_FIELD', 'prompt');
+const NANO_IMAGE_FIELD = readEnv('NANOBANANA_IMAGE_FIELD', 'image');
+const NANO_TEMPLATE_IMAGE_FIELD = readEnv('NANOBANANA_TEMPLATE_IMAGE_FIELD', NANO_IMAGE_FIELD);
+const NANO_INCLUDE_TEMPLATE = readEnv('NANOBANANA_INCLUDE_TEMPLATE', '1') !== '0';
+const NANO_GROUP = readEnv('NANOBANANA_GROUP');
+const NANO_EXTRA_HEADERS = readEnv('NANOBANANA_EXTRA_HEADERS');
+const NANO_DEBUG = readEnv('NANOBANANA_DEBUG') === '1';
 
 type OpenAIImageItem = {
   url?: string;
@@ -225,17 +233,38 @@ function getAuthHeaderCandidates(): Record<string, string>[] {
   return deduped;
 }
 
-function resolveGeminiEndpointPath(): string {
+function getModelCandidates(): string[] {
+  const candidates = [NANO_MODEL];
+
+  // Some providers expose aliases like "[A]model-name" while some keys only
+  // work with the raw model name.
+  const aliasStripped = NANO_MODEL.replace(/^\[[^\]]+\]\s*/, '');
+  if (aliasStripped && aliasStripped !== NANO_MODEL) {
+    candidates.push(aliasStripped);
+  }
+
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const normalized = candidate.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
+}
+
+function resolveGeminiEndpointPath(model: string): string {
   if (NANO_GEMINI_ENDPOINT_TEMPLATE.includes('{model}')) {
-    return NANO_GEMINI_ENDPOINT_TEMPLATE.replace('{model}', encodeURIComponent(NANO_MODEL));
+    return NANO_GEMINI_ENDPOINT_TEMPLATE.replace('{model}', encodeURIComponent(model));
   }
   return NANO_GEMINI_ENDPOINT_TEMPLATE;
 }
 
-function getGeminiEndpointCandidates(): string[] {
-  const encodedModel = encodeURIComponent(NANO_MODEL);
+function getGeminiEndpointCandidates(model: string): string[] {
+  const encodedModel = encodeURIComponent(model);
   const candidates = [
-    resolveGeminiEndpointPath(),
+    resolveGeminiEndpointPath(model),
     `/v1beta/models/${encodedModel}:generateContent`,
     `/v1/models/${encodedModel}:generateContent`,
   ];
@@ -396,25 +425,27 @@ async function generateCardViaGemini(
     },
   };
 
-  const endpointCandidates = getGeminiEndpointCandidates();
   const endpointErrors: string[] = [];
-  for (const endpointPath of endpointCandidates) {
-    const endpoint = `${NANO_BASE_URL}${endpointPath}`;
-    if (NANO_DEBUG) {
-      console.log('Gemini-style request', {
-        endpoint,
-        model: NANO_MODEL,
-        apiMode: NANO_API_MODE,
-      });
-    }
+  for (const model of getModelCandidates()) {
+    const endpointCandidates = getGeminiEndpointCandidates(model);
+    for (const endpointPath of endpointCandidates) {
+      const endpoint = `${NANO_BASE_URL}${endpointPath}`;
+      if (NANO_DEBUG) {
+        console.log('Gemini-style request', {
+          endpoint,
+          model,
+          apiMode: NANO_API_MODE,
+        });
+      }
 
-    try {
-      const data = await fetchWithAuthFallback(endpoint, JSON.stringify(requestBody), 'application/json');
-      const result = parseImageFromResponse(data);
-      if (result) return result;
-      endpointErrors.push(`响应成功但无法解析图片: ${endpointPath}`);
-    } catch (error) {
-      endpointErrors.push(`${endpointPath} => ${error instanceof Error ? error.message : '请求失败'}`);
+      try {
+        const data = await fetchWithAuthFallback(endpoint, JSON.stringify(requestBody), 'application/json');
+        const result = parseImageFromResponse(data);
+        if (result) return result;
+        endpointErrors.push(`模型 ${model}: 响应成功但无法解析图片: ${endpointPath}`);
+      } catch (error) {
+        endpointErrors.push(`模型 ${model} ${endpointPath} => ${error instanceof Error ? error.message : '请求失败'}`);
+      }
     }
   }
 
@@ -426,32 +457,39 @@ async function generateCardViaImageEndpoint(
   templateImage: string,
   rank: 'J' | 'Q' | 'K'
 ): Promise<string> {
-  const formData = new FormData();
-  formData.append(NANO_MODEL_FIELD, NANO_MODEL);
   const prompt = PROMPTS[rank];
-  formData.append(NANO_PROMPT_FIELD, prompt);
-  formData.append(NANO_IMAGE_FIELD, dataUrlToBlob(petImage), 'pet.png');
-  if (NANO_INCLUDE_TEMPLATE) {
-    formData.append(NANO_TEMPLATE_IMAGE_FIELD, dataUrlToBlob(templateImage), 'template.png');
-  }
-
-  if (NANO_DEBUG) {
-    console.log('Nano Banana request', {
-      endpoint: `${NANO_BASE_URL}${NANO_IMAGE_ENDPOINT}`,
-      model: NANO_MODEL,
-      hasGroup: Boolean(NANO_GROUP),
-      apiMode: NANO_API_MODE,
-    });
-  }
-
   const endpoint = `${NANO_BASE_URL}${NANO_IMAGE_ENDPOINT}`;
-  const data = await fetchWithAuthFallback(endpoint, formData);
-  const result = parseImageFromResponse(data);
+  const errors: string[] = [];
 
-  if (result) return result;
+  for (const model of getModelCandidates()) {
+    const formData = new FormData();
+    formData.append(NANO_MODEL_FIELD, model);
+    formData.append(NANO_PROMPT_FIELD, prompt);
+    formData.append(NANO_IMAGE_FIELD, dataUrlToBlob(petImage), 'pet.png');
+    if (NANO_INCLUDE_TEMPLATE) {
+      formData.append(NANO_TEMPLATE_IMAGE_FIELD, dataUrlToBlob(templateImage), 'template.png');
+    }
 
-  console.error('Unexpected image endpoint response:', JSON.stringify(data, null, 2));
-  throw new Error('无法解析生成的图片');
+    if (NANO_DEBUG) {
+      console.log('Nano Banana request', {
+        endpoint,
+        model,
+        hasGroup: Boolean(NANO_GROUP),
+        apiMode: NANO_API_MODE,
+      });
+    }
+
+    try {
+      const data = await fetchWithAuthFallback(endpoint, formData);
+      const result = parseImageFromResponse(data);
+      if (result) return result;
+      errors.push(`模型 ${model}: 响应成功但无法解析图片`);
+    } catch (error) {
+      errors.push(`模型 ${model} => ${error instanceof Error ? error.message : '请求失败'}`);
+    }
+  }
+
+  throw new Error(`图像接口调用失败: ${errors.join(' | ')}`);
 }
 
 async function generateCard(
