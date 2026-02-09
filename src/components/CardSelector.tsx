@@ -4,13 +4,13 @@ import { useState } from 'react';
 import PokerCard from './PokerCard';
 
 interface CardSelectorProps {
-  cards: [string, string];
+  cards: string[];
   onSelect: (selectedCard: string) => void;
 }
 
 export default function CardSelector({ cards, onSelect }: CardSelectorProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [isFlipped, setIsFlipped] = useState([false, false]);
+  const [isFlipped, setIsFlipped] = useState(cards.map(() => false));
 
   const handleCardClick = (index: number) => {
     // 先翻牌
@@ -43,13 +43,17 @@ export default function CardSelector({ cards, onSelect }: CardSelectorProps) {
 
       <div className="flex gap-8">
         {cards.map((card, index) => (
-          <PokerCard
-            key={index}
-            imageUrl={card}
-            isFlipped={isFlipped[index]}
-            isSelected={selectedIndex === index}
-            onClick={() => handleCardClick(index)}
-          />
+          <div key={index} className="flex flex-col items-center">
+            <span className="text-sm text-gray-600 mb-2">
+              红桃 {['J', 'Q', 'K'][index]}
+            </span>
+            <PokerCard
+              imageUrl={card}
+              isFlipped={isFlipped[index]}
+              isSelected={selectedIndex === index}
+              onClick={() => handleCardClick(index)}
+            />
+          </div>
         ))}
       </div>
 

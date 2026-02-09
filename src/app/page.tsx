@@ -10,7 +10,7 @@ import PokerCard from '@/components/PokerCard';
 type AppState =
   | { step: 'upload' }
   | { step: 'generating'; petImage: string }
-  | { step: 'select'; cards: [string, string] }
+  | { step: 'select'; cards: string[] }
   | { step: 'result'; selectedCard: string };
 
 export default function Home() {

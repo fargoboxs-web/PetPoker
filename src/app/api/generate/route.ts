@@ -70,35 +70,98 @@ type GeminiGenerateRequestBody = {
   };
 };
 
-const PROMPT = `你是一个专业的扑克牌设计师。请根据我提供的宠物照片，创作一张新春主题的扑克牌 K（King）。
+// J、Q、K 三张牌的提示词
+const PROMPTS = {
+  J: `# Role: Master of Traditional Card Cartography & Antique Engraving
 
-【宠物特征要求】- 最重要！
-- 必须完全保留照片中宠物的外观：毛色、花纹、眼睛颜色、耳朵形状
-- 宠物的脸部特征必须可辨认，让主人一眼就能认出是自己的宠物
+# Primary Objective:
+Create a VERTICAL (Portrait) custom playing card. You must perform a surgical replacement of the central figure from the base card (image_0.png) with the pet from image_1.png, while strictly adhering to standard playing card layout and orientation.
 
-【服装设计】
-- 中国古代皇帝龙袍：明黄色为主，绣有金龙图案
-- 头戴皇冠或龙冠
-- 可添加玉佩、朝珠等配饰
+# 1. Mandatory Canvas & Orientation:
+- **Vertical Orientation:** The final output MUST be a vertical (portrait) card, exactly like image_0.png. Do NOT generate a horizontal or landscape layout.
+- **Aspect Ratio:** Match the standard tall rectangular proportions of a playing card.
 
-【扑克牌格式】
-- 标准扑克牌比例 2.5:3.5
-- 左上角：红色 K 字母 + 红桃符号
-- 右下角：倒置的 K + 红桃（传统扑克牌对称设计）
-- 边框：金色华丽边框，带中国传统纹样
-- 参考第二张图片的扑克牌设计风格
+# 2. Strict Index & Corner Logic (The "Two-Corner" Rule):
+- **Placement:** Only TWO corners shall contain indices (the Letter and Suit symbol).
+    - Top-Left corner: 'J' and 'Heart' in normal upright orientation.
+    - Bottom-Right corner: 'J' and 'Heart' rotated 180 degrees (upside down).
+- **Negative Constraint:** Do NOT add any indices, symbols, or letters to the top-right or bottom-left corners. Keep them completely blank/white, identical to image_0.png.
+- **Consistency:** The font, color (red), and size of these indices must match image_0.png perfectly.
 
-【背景与氛围】
-- 红色、金色为主色调
-- 可包含：祥云、金元宝、红灯笼、烟花等新春元素
-- 整体喜庆、华丽、适合新年氛围
+# 3. Subject Replacement & CNY Theme:
+- **Central Character:** Replace the Jack with the pet from image_1.png. Maintain exact facial features, fur patterns, and breed characteristics.
+- **Double-Headed Symmetry:** Render the pet as a traditional double-headed figure, mirrored vertically along the center line (upright on top, inverted on bottom).
+- **Festive CNY Attire:** Dress the pet in authentic Chinese New Year clothing (e.g., a red Tang suit with golden silk embroidery, a dragon-patterned robe, or a traditional festive cap).
+- **Pet Identity Preservation:** The pet's fur color, pattern distribution, eye color, ear shape, and facial proportions MUST match image_1.png exactly. Do NOT generate a different breed or "similar-looking" pet.
 
-【风格】
-- 高质量数字插画
-- 色彩饱满、细节丰富
-- 类似高端定制扑克牌的精美质感
+# 4. Stylistic Integration (Antique Print Style):
+- **Art Style:** The entire central figure (pet + clothing) must be rendered in the VINTAGE ENGRAVING / WOODCUT style.
+- **Technique:** Use fine black line-art, dense hatching for shadows, and flat, bold color fills (red, blue, yellow) that match the lithographic printing style of image_0.png.
+- **Background & Border:** Preserve the original black inner-frame lines and the clean white background/paper texture of image_0.png.
 
-请生成一张完整的扑克牌图片。`;
+# Final Verification:
+Ensure the card is vertical, has only two indices (top-left and bottom-right), and the pet looks like a hand-drawn engraving from the 19th century wearing festive Chinese robes.`,
+
+  Q: `# Role: Master of Traditional Card Cartography & Antique Engraving
+
+# Primary Objective:
+Create a VERTICAL (Portrait) custom playing card. You must perform a surgical replacement of the central figure from the base card (image_0.png) with the pet from image_1.png, while strictly adhering to standard playing card layout and orientation.
+
+# 1. Mandatory Canvas & Orientation:
+- **Vertical Orientation:** The final output MUST be a vertical (portrait) card, exactly like image_0.png. Do NOT generate a horizontal or landscape layout.
+- **Aspect Ratio:** Match the standard tall rectangular proportions of a playing card.
+
+# 2. Strict Index & Corner Logic (The "Two-Corner" Rule):
+- **Placement:** Only TWO corners shall contain indices (the Letter and Suit symbol).
+    - Top-Left corner: 'Q' and 'Heart' in normal upright orientation.
+    - Bottom-Right corner: 'Q' and 'Heart' rotated 180 degrees (upside down).
+- **Negative Constraint:** Do NOT add any indices, symbols, or letters to the top-right or bottom-left corners. Keep them completely blank/white, identical to image_0.png.
+- **Consistency:** The font, color (red), and size of these indices must match image_0.png perfectly.
+
+# 3. Subject Replacement & CNY Theme:
+- **Central Character:** Replace the Queen with the pet from image_1.png. Maintain exact facial features, fur patterns, and breed characteristics.
+- **Double-Headed Symmetry:** Render the pet as a traditional double-headed Queen figure, mirrored vertically along the center line (upright on top, inverted on bottom).
+- **Festive CNY Attire:** Dress the pet in authentic Chinese New Year royal clothing (e.g., an elegant red and gold embroidered robe, a phoenix-patterned dress, or traditional festive headpiece).
+- **Pet Identity Preservation:** The pet's fur color, pattern distribution, eye color, ear shape, and facial proportions MUST match image_1.png exactly. Do NOT generate a different breed or "similar-looking" pet.
+
+# 4. Stylistic Integration (Antique Print Style):
+- **Art Style:** The entire central figure (pet + clothing) must be rendered in the VINTAGE ENGRAVING / WOODCUT style.
+- **Technique:** Use fine black line-art, dense hatching for shadows, and flat, bold color fills (red, blue, yellow) that match the lithographic printing style of image_0.png.
+- **Background & Border:** Preserve the original black inner-frame lines and the clean white background/paper texture of image_0.png.
+
+# Final Verification:
+Ensure the card is vertical, has only two indices (top-left and bottom-right), and the pet looks like a hand-drawn engraving from the 19th century wearing festive Chinese royal robes.`,
+
+  K: `# Role: Master of Traditional Card Cartography & Antique Engraving
+
+# Primary Objective:
+Create a VERTICAL (Portrait) custom playing card. You must perform a surgical replacement of the central figure from the base card (image_0.png) with the pet from image_1.png, while strictly adhering to standard playing card layout and orientation.
+
+# 1. Mandatory Canvas & Orientation:
+- **Vertical Orientation:** The final output MUST be a vertical (portrait) card, exactly like image_0.png. Do NOT generate a horizontal or landscape layout.
+- **Aspect Ratio:** Match the standard tall rectangular proportions of a playing card.
+
+# 2. Strict Index & Corner Logic (The "Two-Corner" Rule):
+- **Placement:** Only TWO corners shall contain indices (the Letter and Suit symbol).
+    - Top-Left corner: 'K' and 'Heart' in normal upright orientation.
+    - Bottom-Right corner: 'K' and 'Heart' rotated 180 degrees (upside down).
+- **Negative Constraint:** Do NOT add any indices, symbols, or letters to the top-right or bottom-left corners. Keep them completely blank/white, identical to image_0.png.
+- **Consistency:** The font, color (red), and size of these indices must match image_0.png perfectly.
+
+# 3. Subject Replacement & CNY Theme:
+- **Central Character:** Replace the King with the pet from image_1.png. Maintain exact facial features, fur patterns, and breed characteristics.
+- **Double-Headed Symmetry:** Render the pet as a traditional double-headed King figure, mirrored vertically along the center line (upright on top, inverted on bottom).
+- **Festive CNY Attire:** Dress the pet in authentic Chinese New Year royal clothing (e.g., a red Tang suit with golden silk embroidery, a dragon-patterned imperial robe, or a traditional festive crown).
+- **Pet Identity Preservation:** The pet's fur color, pattern distribution, eye color, ear shape, and facial proportions MUST match image_1.png exactly. Do NOT generate a different breed or "similar-looking" pet.
+
+# 4. Stylistic Integration (Antique Print Style):
+- **Art Style:** The entire central figure (pet + clothing) must be rendered in the VINTAGE ENGRAVING / WOODCUT style.
+- **Technique:** Use fine black line-art, dense hatching for shadows, and flat, bold color fills (red, blue, yellow) that match the lithographic printing style of image_0.png.
+- **Background & Border:** Preserve the original black inner-frame lines and the clean white background/paper texture of image_0.png.
+
+# Final Verification:
+Ensure the card is vertical, has only two indices (top-left and bottom-right), and the pet looks like a hand-drawn engraving from the 19th century wearing festive Chinese royal robes.`,
+};
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -230,6 +293,24 @@ function parseImageFromResponse(rawData: unknown): string | null {
   return null;
 }
 
+// 从响应中解析纯文本内容
+function parseTextFromResponse(rawData: unknown): string | null {
+  const data = rawData as ApiResponsePayload;
+  const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
+  const texts: string[] = [];
+
+  for (const candidate of candidates) {
+    const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+    for (const part of parts) {
+      if (typeof part?.text === 'string' && part.text.trim().length > 0) {
+        texts.push(part.text.trim());
+      }
+    }
+  }
+
+  return texts.length > 0 ? texts.join('\n') : null;
+}
+
 async function fetchWithAuthFallback(
   url: string,
   body: BodyInit | string,
@@ -275,18 +356,20 @@ async function fetchWithAuthFallback(
   throw new Error(`API 调用失败，已尝试多种认证方式: ${errors.join(' | ')}`);
 }
 
-async function generateCardViaGemini(petImage: string, templateImage: string): Promise<string> {
+// 生成扑克牌（使用固定提示词）
+async function generateCardViaGemini(
+  petImage: string,
+  templateImage: string,
+  rank: 'J' | 'Q' | 'K'
+): Promise<string> {
   const pet = parseDataUrl(petImage);
+  const prompt = PROMPTS[rank];
+
   const parts: GeminiRequestPart[] = [
-    { text: PROMPT },
-    {
-      inlineData: {
-        mimeType: pet.mimeType,
-        data: pet.base64Data,
-      },
-    },
+    { text: prompt },
   ];
 
+  // 模板图片在前（第一张图片）
   if (NANO_INCLUDE_TEMPLATE) {
     const template = parseDataUrl(templateImage);
     parts.push({
@@ -296,6 +379,14 @@ async function generateCardViaGemini(petImage: string, templateImage: string): P
       },
     });
   }
+
+  // 宠物照片在后（第二张图片）
+  parts.push({
+    inlineData: {
+      mimeType: pet.mimeType,
+      data: pet.base64Data,
+    },
+  });
 
   const requestBody: GeminiGenerateRequestBody = {
     contents: [{ role: 'user', parts }],
@@ -330,10 +421,15 @@ async function generateCardViaGemini(petImage: string, templateImage: string): P
   throw new Error(`Gemini 接口调用失败: ${endpointErrors.join(' | ')}`);
 }
 
-async function generateCardViaImageEndpoint(petImage: string, templateImage: string): Promise<string> {
+async function generateCardViaImageEndpoint(
+  petImage: string,
+  templateImage: string,
+  rank: 'J' | 'Q' | 'K'
+): Promise<string> {
   const formData = new FormData();
   formData.append(NANO_MODEL_FIELD, NANO_MODEL);
-  formData.append(NANO_PROMPT_FIELD, PROMPT);
+  const prompt = PROMPTS[rank];
+  formData.append(NANO_PROMPT_FIELD, prompt);
   formData.append(NANO_IMAGE_FIELD, dataUrlToBlob(petImage), 'pet.png');
   if (NANO_INCLUDE_TEMPLATE) {
     formData.append(NANO_TEMPLATE_IMAGE_FIELD, dataUrlToBlob(templateImage), 'template.png');
@@ -358,23 +454,27 @@ async function generateCardViaImageEndpoint(petImage: string, templateImage: str
   throw new Error('无法解析生成的图片');
 }
 
-async function generateCard(petImage: string, templateImage: string): Promise<string> {
+async function generateCard(
+  petImage: string,
+  templateImage: string,
+  rank: 'J' | 'Q' | 'K'
+): Promise<string> {
   if (NANO_API_MODE === 'openai-images') {
-    return generateCardViaImageEndpoint(petImage, templateImage);
+    return generateCardViaImageEndpoint(petImage, templateImage, rank);
   }
 
   if (NANO_API_MODE === 'auto') {
     try {
-      return await generateCardViaGemini(petImage, templateImage);
+      return await generateCardViaGemini(petImage, templateImage, rank);
     } catch (error) {
       if (NANO_DEBUG) {
         console.warn('Gemini-style call failed, fallback to image endpoint:', error);
       }
-      return generateCardViaImageEndpoint(petImage, templateImage);
+      return generateCardViaImageEndpoint(petImage, templateImage, rank);
     }
   }
 
-  return generateCardViaGemini(petImage, templateImage);
+  return generateCardViaGemini(petImage, templateImage, rank);
 }
 
 export async function POST(request: NextRequest) {
@@ -395,27 +495,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let templateBase64 = '';
+    // 读取 J、Q、K 三个模板
+    const templateNames = [
+      { name: 'poker-template-j.png', rank: 'J' as const },
+      { name: 'poker-template-q.png', rank: 'Q' as const },
+      { name: 'poker-template-k.png', rank: 'K' as const },
+    ];
+    const templates: Array<{ base64: string; rank: 'J' | 'Q' | 'K' }> = [];
+
     if (NANO_INCLUDE_TEMPLATE) {
-      // 读取扑克牌模板（转换为 base64）
-      const templateUrl = new URL('/poker-template.png', request.url);
-      const templateResponse = await fetch(templateUrl);
-      if (!templateResponse.ok) {
-        throw new Error('扑克牌模板读取失败');
+      for (const { name, rank } of templateNames) {
+        const templateUrl = new URL(`/${name}`, request.url);
+        const templateResponse = await fetch(templateUrl);
+        if (!templateResponse.ok) {
+          throw new Error(`模板 ${name} 读取失败`);
+        }
+        const templateBuffer = await templateResponse.arrayBuffer();
+        templates.push({
+          base64: `data:image/png;base64,${Buffer.from(templateBuffer).toString('base64')}`,
+          rank,
+        });
       }
-      const templateBuffer = await templateResponse.arrayBuffer();
-      templateBase64 = `data:image/png;base64,${Buffer.from(templateBuffer).toString('base64')}`;
     }
 
-    // 并行生成 2 张卡片
-    const [card1, card2] = await Promise.all([
-      generateCard(petImage, templateBase64),
-      generateCard(petImage, templateBase64),
+    // 生成 3 张卡片（J、Q、K 各一张）
+    if (NANO_DEBUG) {
+      console.log('Generating 3 cards (J, Q, K)...');
+    }
+    const [cardJ, cardQ, cardK] = await Promise.all([
+      generateCard(petImage, templates[0].base64, templates[0].rank),
+      generateCard(petImage, templates[1].base64, templates[1].rank),
+      generateCard(petImage, templates[2].base64, templates[2].rank),
     ]);
 
     return NextResponse.json({
       success: true,
-      cards: [card1, card2],
+      cards: [cardJ, cardQ, cardK],
     });
   } catch (error) {
     console.error('Generate error:', error);
