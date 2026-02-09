@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 
 interface PokerCardProps {
   imageUrl: string;
@@ -42,11 +41,16 @@ export default function PokerCard({
           `}
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <Image
+          {/* Use <img> here because generated cards often come from third-party URLs
+              and Next/Image requires remotePatterns configuration (and may proxy via
+              an optimizer that can fail on slow/unreachable hosts). */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={imageUrl}
             alt="生成的扑克牌"
-            fill
-            className="object-cover"
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
         </div>
 
