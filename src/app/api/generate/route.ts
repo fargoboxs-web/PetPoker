@@ -289,8 +289,8 @@ function extractImageUrlFromText(text: string): string | null {
 function parseImageFromResponse(rawData: unknown): string | null {
   const data = rawData as ApiResponsePayload;
   const first = data?.data?.[0];
-  if (typeof first?.url === 'string') return first.url;
   if (typeof first?.b64_json === 'string') return `data:image/png;base64,${first.b64_json}`;
+  if (typeof first?.url === 'string') return first.url;
 
   const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
   const texts: string[] = [];
@@ -444,30 +444,42 @@ async function generateCardViaImageEndpoint(
   const errors: string[] = [];
 
   for (const model of getModelCandidates()) {
-    const formData = new FormData();
-    formData.append(NANO_MODEL_FIELD, model);
-    formData.append(NANO_PROMPT_FIELD, prompt);
-    formData.append(NANO_IMAGE_FIELD, dataUrlToBlob(petImage), 'pet.png');
-    if (NANO_INCLUDE_TEMPLATE) {
-      formData.append(NANO_TEMPLATE_IMAGE_FIELD, dataUrlToBlob(templateImage), 'template.png');
-    }
+    // Try returning base64 first to avoid relying on the provider's image hosting.
+    // Some providers might not support response_format, so we fall back to default.
+    const responseFormats: Array<string | null> = ['b64_json', null];
 
-    if (NANO_DEBUG) {
-      console.log('Nano Banana request', {
-        endpoint,
-        model,
-        hasGroup: Boolean(NANO_GROUP),
-        apiMode: NANO_API_MODE,
-      });
-    }
+    for (const responseFormat of responseFormats) {
+      const formData = new FormData();
+      formData.append(NANO_MODEL_FIELD, model);
+      formData.append(NANO_PROMPT_FIELD, prompt);
+      formData.append(NANO_IMAGE_FIELD, dataUrlToBlob(petImage), 'pet.png');
+      if (NANO_INCLUDE_TEMPLATE) {
+        formData.append(NANO_TEMPLATE_IMAGE_FIELD, dataUrlToBlob(templateImage), 'template.png');
+      }
+      if (responseFormat) {
+        formData.append('response_format', responseFormat);
+      }
 
-    try {
-      const data = await fetchWithAuthFallback(endpoint, formData);
-      const result = parseImageFromResponse(data);
-      if (result) return result;
-      errors.push(`模型 ${model}: 响应成功但无法解析图片`);
-    } catch (error) {
-      errors.push(`模型 ${model} => ${error instanceof Error ? error.message : '请求失败'}`);
+      if (NANO_DEBUG) {
+        console.log('Nano Banana request', {
+          endpoint,
+          model,
+          hasGroup: Boolean(NANO_GROUP),
+          apiMode: NANO_API_MODE,
+          responseFormat: responseFormat ?? 'default',
+        });
+      }
+
+      try {
+        const data = await fetchWithAuthFallback(endpoint, formData);
+        const result = parseImageFromResponse(data);
+        if (result) return result;
+        errors.push(`模型 ${model}(${responseFormat ?? 'default'}): 响应成功但无法解析图片`);
+      } catch (error) {
+        errors.push(
+          `模型 ${model}(${responseFormat ?? 'default'}) => ${error instanceof Error ? error.message : '请求失败'}`
+        );
+      }
     }
   }
 
