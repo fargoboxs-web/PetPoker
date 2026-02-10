@@ -286,11 +286,26 @@ function extractImageUrlFromText(text: string): string | null {
   return match ? match[0] : null;
 }
 
+function wrapImageUrlForClient(url: string): string {
+  // Force browser image loads through our own origin to avoid unreliable or blocked
+  // third-party image hosts. This also reduces the chance that client networks
+  // cannot reach the provider's image bed.
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+    }
+  } catch {
+    // ignore
+  }
+  return url;
+}
+
 function parseImageFromResponse(rawData: unknown): string | null {
   const data = rawData as ApiResponsePayload;
   const first = data?.data?.[0];
   if (typeof first?.b64_json === 'string') return `data:image/png;base64,${first.b64_json}`;
-  if (typeof first?.url === 'string') return first.url;
+  if (typeof first?.url === 'string') return wrapImageUrlForClient(first.url);
 
   const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
   const texts: string[] = [];
@@ -316,7 +331,7 @@ function parseImageFromResponse(rawData: unknown): string | null {
 
   for (const text of texts) {
     const url = extractImageUrlFromText(text);
-    if (url) return url;
+    if (url) return wrapImageUrlForClient(url);
   }
 
   return null;
