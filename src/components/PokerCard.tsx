@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface PokerCardProps {
@@ -17,6 +18,7 @@ export default function PokerCard({
   onClick,
   size = 'normal'
 }: PokerCardProps) {
+  const [loadError, setLoadError] = useState(false);
   const dimensions = size === 'large'
     ? { width: 300, height: 420 }
     : { width: 200, height: 280 };
@@ -51,7 +53,22 @@ export default function PokerCard({
             className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
+            onLoad={() => setLoadError(false)}
+            onError={() => setLoadError(true)}
           />
+          {loadError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/90 p-4 text-center">
+              <div className="text-sm font-medium text-gray-700">图片加载失败</div>
+              <a
+                href={imageUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-blue-700 underline break-all"
+              >
+                打开图片链接
+              </a>
+            </div>
+          )}
         </div>
 
         {/* 背面 - 扑克牌花纹 */}
