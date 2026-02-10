@@ -305,7 +305,6 @@ function parseImageFromResponse(rawData: unknown): string | null {
   const data = rawData as ApiResponsePayload;
   const first = data?.data?.[0];
   if (typeof first?.b64_json === 'string') return `data:image/png;base64,${first.b64_json}`;
-  if (typeof first?.url === 'string') return wrapImageUrlForClient(first.url);
 
   const candidates = Array.isArray(data?.candidates) ? data.candidates : [];
   const texts: string[] = [];
@@ -328,6 +327,8 @@ function parseImageFromResponse(rawData: unknown): string | null {
       }
     }
   }
+
+  if (typeof first?.url === 'string') return wrapImageUrlForClient(first.url);
 
   for (const text of texts) {
     const url = extractImageUrlFromText(text);
