@@ -415,34 +415,44 @@ async function generateCardViaGemini(
     },
   });
 
-  const requestBody: GeminiGenerateRequestBody = {
-    contents: [{ role: 'user', parts }],
-    generationConfig: {
-      responseModalities: ['IMAGE', 'TEXT'],
-      imageConfig: { imageSize: NANO_IMAGE_SIZE.toUpperCase() },
-    },
-  };
-
   const endpointErrors: string[] = [];
   for (const model of getModelCandidates()) {
+    // Some upstreams only return image bytes when TEXT is not requested.
+    const modalitiesList: string[][] = [['IMAGE'], ['IMAGE', 'TEXT']];
     const endpointCandidates = getGeminiEndpointCandidates(model);
-    for (const endpointPath of endpointCandidates) {
-      const endpoint = `${NANO_BASE_URL}${endpointPath}`;
-      if (NANO_DEBUG) {
-        console.log('Gemini-style request', {
-          endpoint,
-          model,
-          apiMode: NANO_API_MODE,
-        });
-      }
 
-      try {
-        const data = await fetchWithAuthFallback(endpoint, JSON.stringify(requestBody), 'application/json');
-        const result = parseImageFromResponse(data);
-        if (result) return result;
-        endpointErrors.push(`模型 ${model}: 响应成功但无法解析图片: ${endpointPath}`);
-      } catch (error) {
-        endpointErrors.push(`模型 ${model} ${endpointPath} => ${error instanceof Error ? error.message : '请求失败'}`);
+    for (const responseModalities of modalitiesList) {
+      const requestBody: GeminiGenerateRequestBody = {
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          responseModalities,
+          imageConfig: { imageSize: NANO_IMAGE_SIZE.toUpperCase() },
+        },
+      };
+
+      for (const endpointPath of endpointCandidates) {
+        const endpoint = `${NANO_BASE_URL}${endpointPath}`;
+        if (NANO_DEBUG) {
+          console.log('Gemini-style request', {
+            endpoint,
+            model,
+            apiMode: NANO_API_MODE,
+            responseModalities,
+          });
+        }
+
+        try {
+          const data = await fetchWithAuthFallback(endpoint, JSON.stringify(requestBody), 'application/json');
+          const result = parseImageFromResponse(data);
+          if (result) return result;
+          endpointErrors.push(
+            `模型 ${model}(${responseModalities.join('+')}): 响应成功但无法解析图片: ${endpointPath}`
+          );
+        } catch (error) {
+          endpointErrors.push(
+            `模型 ${model}(${responseModalities.join('+')}) ${endpointPath} => ${error instanceof Error ? error.message : '请求失败'}`
+          );
+        }
       }
     }
   }
